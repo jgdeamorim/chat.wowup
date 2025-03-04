@@ -1,23 +1,20 @@
 # Usa a imagem oficial do Python
 FROM python:3.11
 
-# Define o diretório de trabalho
-WORKDIR /app
+# Define o diretório de trabalho como raiz "/"
+WORKDIR /
 
-# Copia os arquivos de dependências primeiro para melhorar cache
+# Copia os arquivos de dependências primeiro
 COPY requirements.txt .
 
 # Instala as dependências antes de copiar o código
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copia apenas o conteúdo da pasta `app/`, não a pasta inteira
-COPY app/ /app/
+# Copia todos os arquivos diretamente para a raiz do container
+COPY . /
 
-# Ajusta a variável de ambiente para garantir que os módulos sejam encontrados corretamente
-ENV PYTHONPATH=/app
-
-# Expõe a porta
+# Expõe a porta do FastAPI
 EXPOSE 8000
 
-# Comando correto para rodar FastAPI
+# Comando correto para rodar FastAPI sem precisar de ajustes no caminho
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
