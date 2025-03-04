@@ -14,7 +14,7 @@
     "JWT_SECRET_KEY": "supersecretkey",
     "OPENAI_API_KEY": "sk-xxxxx",
     "GITHUB_TOKEN": "your_github_api_token_here",
-    "DEPLOY_API_URL": "https://api.railway.app/v1/projects/{PROJECT_ID}/deploys",
+    "DEPLOY_API_URL": "https://api.railway.app/v1/projects/547bcf56-2347-4443-80af-7da6e7f2b528/deploys",
     "DEPLOY_API_KEY": "c4ae20fe-b6b0-4a19-a902-bfd7b300620f",
     "LOG_LEVEL": "INFO",
     "ENABLE_CRITICAL_ALERTS": "True",

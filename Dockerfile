@@ -2,14 +2,14 @@
 FROM python:3.11
 
 # 🔹 Definir diretório de trabalho dentro do container
-WORKDIR /app
+WORKDIR /
 
 # 🔹 Copiar arquivos do projeto para dentro do container
 COPY . /app
 
 # 🔹 Instalar dependências
 RUN pip install --no-cache-dir --upgrade pip \
-  && pip install -r requirements.txt
+  && pip install --no-cache-dir --default-timeout=100 -r requirements.txt
 
 # 🔹 Expor porta do serviço
 EXPOSE 8000
