@@ -1,8 +1,6 @@
-# app/core/database.py
-
 import logging
 import motor.motor_asyncio
-import aioredis
+import redis.asyncio as redis
 import os
 from dotenv import load_dotenv
 
@@ -13,11 +11,11 @@ load_dotenv()
 logger = logging.getLogger("database")
 logger.setLevel(logging.INFO)
 
-# Configurações do MongoDB
+# Configuração do MongoDB
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://crossover.proxy.rlwy.net:52597")
 DATABASE_NAME = os.getenv("DATABASE_NAME", "chat_central")
 
-# Configurações do Redis
+# Configuração do Redis
 REDIS_URI = os.getenv("REDIS_URI", "redis://maglev.proxy.rlwy.net:17929")
 
 # Inicializa clientes de banco de dados
@@ -32,14 +30,17 @@ class Database:
         Conecta ao MongoDB e Redis, garantindo a disponibilidade do banco de dados.
         """
         try:
-            # Conectar ao MongoDB
-            self.client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
-            self.db = self.client[DATABASE_NAME]
-            logger.info("✅ Conectado ao MongoDB com sucesso.")
+            if not self.client:
+                self.client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
+                self.db = self.client[DATABASE_NAME]
+                logger.info("✅ Conectado ao MongoDB com sucesso.")
 
-            # Conectar ao Redis
-            self.redis = await aioredis.from_url(REDIS_URI, decode_responses=True)
-            logger.info("✅ Conectado ao Redis com sucesso.")
+            if not self.redis:
+                self.redis = redis.Redis.from_url(REDIS_URI, decode_responses=True)
+                if await self.redis.ping():
+                    logger.info("✅ Conectado ao Redis com sucesso.")
+                else:
+                    logger.error("❌ Falha ao conectar ao Redis.")
 
         except Exception as e:
             logger.error(f"❌ Erro ao conectar ao banco de dados: {e}")
@@ -49,30 +50,39 @@ class Database:
         """
         Fecha as conexões com MongoDB e Redis quando o sistema for desligado.
         """
-        if self.client:
-            self.client.close()
-            logger.info("🔌 Conexão com MongoDB fechada.")
+        try:
+            if self.client:
+                self.client.close()
+                logger.info("🔌 Conexão com MongoDB fechada.")
 
-        if self.redis:
-            await self.redis.close()
-            logger.info("🔌 Conexão com Redis fechada.")
+            if self.redis:
+                await self.redis.close()
+                logger.info("🔌 Conexão com Redis fechada.")
+
+        except Exception as e:
+            logger.error(f"❌ Erro ao fechar conexões: {e}")
 
     async def check_connection(self):
         """
         Verifica se as conexões com MongoDB e Redis estão ativas e, se necessário, tenta reconectar.
         """
         try:
-            # Testa conexão com MongoDB
-            await self.db.command("ping")
-            logger.info("✅ MongoDB está online.")
+            if self.db:
+                await self.db.command("ping")
+                logger.info("✅ MongoDB está online.")
+            else:
+                logger.warning("⚠️ Conexão com MongoDB perdida. Tentando reconectar...")
+                await self.connect()
 
-            # Testa conexão com Redis
-            pong = await self.redis.ping()
-            if pong:
-                logger.info("✅ Redis está online.")
+            if self.redis:
+                if await self.redis.ping():
+                    logger.info("✅ Redis está online.")
+                else:
+                    logger.warning("⚠️ Conexão com Redis perdida. Tentando reconectar...")
+                    await self.connect()
 
-        except Exception:
-            logger.warning("⚠️ Conexão perdida. Tentando reconectar...")
+        except Exception as e:
+            logger.error(f"❌ Erro na verificação da conexão: {e}")
             await self.connect()
 
     async def get_database(self):
