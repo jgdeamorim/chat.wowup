@@ -1,18 +1,23 @@
-# 🔹 Usando Python 3.11 (ou outra versão necessária)
+# Usa a imagem oficial do Python
 FROM python:3.11
 
-# 🔹 Definir diretório de trabalho dentro do container
-WORKDIR /
+# Define o diretório de trabalho
+WORKDIR /app
 
-# 🔹 Copiar arquivos do projeto para dentro do container
-COPY . /app
+# Define a variável PYTHONPATH
+ENV PYTHONPATH=/app
 
-# 🔹 Instalar dependências
-RUN pip install --no-cache-dir --upgrade pip \
-  && pip install --no-cache-dir --default-timeout=100 -r requirements.txt
+# Copia apenas as dependências primeiro para aproveitar o cache
+COPY requirements.txt .
 
-# 🔹 Expor porta do serviço
+# Instala as dependências antes de copiar o código-fonte
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copia todo o código do backend
+COPY . .
+
+# Exposição da porta
 EXPOSE 8000
 
-# 🔹 Comando para rodar o FastAPI com Uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Comando para rodar a aplicação
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
