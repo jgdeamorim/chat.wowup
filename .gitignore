@@ -1,0 +1,57 @@
+# 🔹 Ignorar ambientes virtuais e dependências locais
+venv/
+.env
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+*.swp
+.DS_Store
+*.log
+
+# 🔹 Ignorar configurações específicas do IDE
+.vscode/
+.idea/
+*.iml
+
+# 🔹 Ignorar dependências do Python
+*.egg-info/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# 🔹 Ignorar configurações de build do Python
+build/
+dist/
+*.egg
+
+# 🔹 Ignorar arquivos do banco de dados local
+*.sqlite3
+*.db
+
+# 🔹 Ignorar arquivos de cache do Redis
+redis_data/
+
+# 🔹 Ignorar arquivos de logs e debug
+logs/
+*.log
+debug.log
+
+# 🔹 Ignorar arquivos do Railway e Docker (se aplicável)
+railway/
+docker-compose.override.yml
+.env.production
+.env.development
+
+# 🔹 Ignorar chaves privadas e credenciais
+.env
+*.pem
+*.crt
+*.key
+secrets.json
+
+# 🔹 Ignorar pastas de armazenamento e cache do projeto
+storage/
+storage/jsons/
+storage/catalog/
+storage/logs/
+storage/temp/
