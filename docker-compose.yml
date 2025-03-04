@@ -1,0 +1,57 @@
+version: "3.8"
+
+services:
+  chat-central:
+    image: chat-central:v1.20
+    build: .
+    container_name: chat-central
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/chatcentral
+      - REDIS_URI=redis://redis:6379
+      - JWT_SECRET_KEY=ba7c3a58d4f8451b938f8a89d2e6a7cdd63cdbdba293a0d59d13c8a55f27b1cb
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - chat-central-network
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - chat-central-network
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.runCommand({ ping: 1 })"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - chat-central-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  chat-central-network:
+
+volumes:
+  mongo_data:
