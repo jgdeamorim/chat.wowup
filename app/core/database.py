@@ -14,11 +14,11 @@ logger = logging.getLogger("database")
 logger.setLevel(logging.INFO)
 
 # Configurações do MongoDB
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://crossover.proxy.rlwy.net:52597")
 DATABASE_NAME = os.getenv("DATABASE_NAME", "chat_central")
 
 # Configurações do Redis
-REDIS_URI = os.getenv("REDIS_URI", "redis://localhost:6379")
+REDIS_URI = os.getenv("REDIS_URI", "redis://maglev.proxy.rlwy.net:17929")
 
 # Inicializa clientes de banco de dados
 class Database:

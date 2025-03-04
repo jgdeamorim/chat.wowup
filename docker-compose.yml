@@ -1,7 +1,7 @@
 version: "3.8"
 
 services:
-  chat-central:
+  backend:
     image: chat-central:v1.20
     build: .
     container_name: chat-central

@@ -4,15 +4,11 @@ FROM python:3.11
 # Define o diretório de trabalho
 WORKDIR /app
 
-# Define a variável PYTHONPATH
 ENV PYTHONPATH=/app
 
-# Copia apenas as dependências primeiro para aproveitar o cache
-COPY requirements.txt .
-
-# Força a instalação de dependências antes de copiar o código
-RUN pip install --no-cache-dir --upgrade pip \
-  && pip install --no-cache-dir -r requirements.txt
+# Copia os arquivos necessários para dentro do container
+COPY requirements.txt . 
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copia todo o código do backend
 COPY . .
@@ -20,5 +16,5 @@ COPY . .
 # Exposição da porta
 EXPOSE 8000
 
-# Comando para rodar a aplicação
+# Comando correto para rodar o FastAPI com Uvicorn
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
