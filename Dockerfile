@@ -10,8 +10,9 @@ ENV PYTHONPATH=/app
 # Copia apenas as dependências primeiro para aproveitar o cache
 COPY requirements.txt .
 
-# Instala as dependências antes de copiar o código-fonte
-RUN pip install --no-cache-dir -r requirements.txt
+# Força a instalação de dependências antes de copiar o código
+RUN pip install --no-cache-dir --upgrade pip \
+  && pip install --no-cache-dir -r requirements.txt
 
 # Copia todo o código do backend
 COPY . .
