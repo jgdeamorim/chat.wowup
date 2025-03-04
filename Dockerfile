@@ -14,8 +14,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copia a pasta `app/` corretamente e o `main.py`
-COPY ./app /app/app
-COPY main.py /app
+COPY . .
 
 # Expõe a porta
 EXPOSE 8000
