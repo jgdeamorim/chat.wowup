@@ -3,6 +3,7 @@ import os
 
 # Adiciona o diretório raiz ao `sys.path`
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "app")))
 
 from app.core.database import init_db
 from app.api.routes import chat, modules, system, logs, users, frontend_sync
