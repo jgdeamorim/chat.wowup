@@ -1,16 +1,14 @@
-# app/api/v1/ai_optimization.py
-
 from fastapi import APIRouter, HTTPException, Depends
 from app.services.ai_optimizer import analyze_system, apply_optimization, revert_optimization
 from app.core.database import get_database
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from datetime import datetime
 from bson import ObjectId
 
 router = APIRouter()
-db = get_database()
 
 @router.get("/status")
-async def get_optimization_status():
+async def get_optimization_status(db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Retorna o status atual do motor de otimização da IA.
     """
@@ -28,18 +26,18 @@ async def get_optimization_status():
         raise HTTPException(status_code=500, detail=f"Erro ao recuperar status da IA: {str(e)}")
 
 @router.post("/analyze")
-async def analyze_system_optimization():
+async def analyze_system_optimization(db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     A IA analisa todos os módulos e sugere otimizações baseadas em logs e aprendizado contínuo.
     """
     try:
-        analysis_result = await analyze_system()
+        analysis_result = await analyze_system(db)
         return {"message": "Análise concluída! Sugestões de otimização foram geradas.", "details": analysis_result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao analisar o sistema: {str(e)}")
 
 @router.post("/apply/{module_name}")
-async def apply_ai_optimization(module_name: str):
+async def apply_ai_optimization(module_name: str, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Aplica uma otimização sugerida para um módulo específico.
     """
@@ -51,13 +49,13 @@ async def apply_ai_optimization(module_name: str):
         if not module:
             raise HTTPException(status_code=404, detail=f"Módulo '{module_name}' não encontrado.")
 
-        result = await apply_optimization(module_name)
+        result = await apply_optimization(db, module_name)
         return {"message": f"Otimização aplicada ao módulo '{module_name}' com sucesso!", "details": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao aplicar otimização: {str(e)}")
 
 @router.get("/history")
-async def get_optimization_history(limit: int = 50):
+async def get_optimization_history(limit: int = 50, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Retorna o histórico de otimizações aplicadas pela IA, limitando a quantidade retornada.
     """
@@ -70,7 +68,7 @@ async def get_optimization_history(limit: int = 50):
         raise HTTPException(status_code=500, detail=f"Erro ao recuperar histórico de otimizações: {str(e)}")
 
 @router.delete("/revert/{optimization_id}")
-async def revert_ai_optimization(optimization_id: str):
+async def revert_ai_optimization(optimization_id: str, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Reverte uma otimização aplicada anteriormente.
     """
@@ -82,7 +80,7 @@ async def revert_ai_optimization(optimization_id: str):
         if not optimization:
             raise HTTPException(status_code=404, detail=f"Otimização '{optimization_id}' não encontrada.")
 
-        result = await revert_optimization(optimization_id)
+        result = await revert_optimization(db, optimization_id)
         return {"message": f"Otimização '{optimization_id}' revertida com sucesso!", "details": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao reverter otimização: {str(e)}")

@@ -1,16 +1,14 @@
-# app/api/v1/chat.py
-
 from fastapi import APIRouter, HTTPException, Depends
 from app.services.chat_assistant import process_chat_request, create_module, improve_module, fetch_ai_suggestions
 from app.core.database import get_database
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from datetime import datetime
 from typing import Dict, Any
 
 router = APIRouter()
-db = get_database()
 
 @router.post("/message")
-async def chat_with_ai(request: Dict[str, Any]):
+async def chat_with_ai(request: Dict[str, Any], db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Envia uma mensagem para a IA e recebe uma resposta inteligente baseada no aprendizado contínuo.
     """
@@ -19,7 +17,7 @@ async def chat_with_ai(request: Dict[str, Any]):
         if not user_message:
             raise HTTPException(status_code=400, detail="A mensagem não pode estar vazia.")
 
-        response = await process_chat_request(user_message)
+        response = await process_chat_request(db, user_message)
 
         # Salvar no histórico do chat
         chat_log = {
@@ -34,7 +32,7 @@ async def chat_with_ai(request: Dict[str, Any]):
         raise HTTPException(status_code=500, detail=f"Erro no processamento do chat: {str(e)}")
 
 @router.get("/history")
-async def get_chat_history(limit: int = 50):
+async def get_chat_history(limit: int = 50, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Retorna o histórico de interações do Admin com o Chat Central.
     """
@@ -47,7 +45,7 @@ async def get_chat_history(limit: int = 50):
         raise HTTPException(status_code=500, detail=f"Erro ao recuperar histórico do chat: {str(e)}")
 
 @router.post("/create-module")
-async def create_internal_module(request: Dict[str, Any]):
+async def create_internal_module(request: Dict[str, Any], db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     O Admin solicita a criação de um novo módulo interno no sistema via Chat Assistente.
     """
@@ -56,13 +54,13 @@ async def create_internal_module(request: Dict[str, Any]):
         if not module_name:
             raise HTTPException(status_code=400, detail="O nome do módulo não pode estar vazio.")
 
-        result = await create_module(module_name)
+        result = await create_module(db, module_name)
         return {"message": f"Módulo '{module_name}' criado com sucesso!", "details": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao criar módulo: {str(e)}")
 
 @router.post("/improve-module")
-async def improve_existing_module(request: Dict[str, Any]):
+async def improve_existing_module(request: Dict[str, Any], db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     O Admin solicita melhorias para um módulo existente.
     """
@@ -71,18 +69,18 @@ async def improve_existing_module(request: Dict[str, Any]):
         if not module_name:
             raise HTTPException(status_code=400, detail="O nome do módulo não pode estar vazio.")
 
-        result = await improve_module(module_name)
+        result = await improve_module(db, module_name)
         return {"message": f"Módulo '{module_name}' aprimorado!", "details": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao melhorar módulo: {str(e)}")
 
 @router.get("/suggestions")
-async def get_ai_suggestions(limit: int = 10):
+async def get_ai_suggestions(limit: int = 10, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Retorna sugestões de melhorias baseadas no aprendizado contínuo da IA.
     """
     try:
-        suggestions = await fetch_ai_suggestions(limit)
+        suggestions = await fetch_ai_suggestions(db, limit)
         if not suggestions:
             return {"message": "Nenhuma sugestão disponível no momento."}
         return {"suggestions": suggestions}

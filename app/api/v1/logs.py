@@ -1,13 +1,11 @@
-# Caminho: app/api/v1/logs.py
-
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from app.core.database import get_database
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from datetime import datetime
 from bson import ObjectId
 from typing import Optional
 
 router = APIRouter()
-db = get_database()
 
 async def trigger_alert(log_entry):
     """
@@ -22,7 +20,8 @@ async def get_logs(
     log_type: Optional[str] = Query(None, description="Filtrar logs por tipo (info, warning, error)"),
     start_date: Optional[str] = Query(None, description="Filtrar logs a partir desta data (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="Filtrar logs até esta data (YYYY-MM-DD)"),
-    limit: Optional[int] = Query(50, description="Número máximo de logs a serem retornados")
+    limit: Optional[int] = Query(50, description="Número máximo de logs a serem retornados"),
+    db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """
     Retorna os logs do sistema, com possibilidade de filtragem por tipo e período.
@@ -43,7 +42,7 @@ async def get_logs(
         raise HTTPException(status_code=500, detail=f"Erro ao buscar logs: {str(e)}")
 
 @router.get("/{log_id}")
-async def get_log_details(log_id: str):
+async def get_log_details(log_id: str, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Obtém detalhes de um log específico pelo seu ID.
     """
@@ -60,7 +59,7 @@ async def get_log_details(log_id: str):
         raise HTTPException(status_code=500, detail=f"Erro ao buscar log: {str(e)}")
 
 @router.delete("/clear")
-async def clear_all_logs():
+async def clear_all_logs(db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Remove todos os logs do sistema.
     """
@@ -71,7 +70,7 @@ async def clear_all_logs():
         raise HTTPException(status_code=500, detail=f"Erro ao limpar logs: {str(e)}")
 
 @router.delete("/delete/{log_id}")
-async def delete_specific_log(log_id: str):
+async def delete_specific_log(log_id: str, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Exclui um log específico do sistema.
     """

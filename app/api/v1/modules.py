@@ -1,17 +1,15 @@
-# Caminho: app/api/v1/modules.py
-
 from fastapi import APIRouter, HTTPException, Depends
 from app.services.module_manager import (
     create_module, update_module, delete_module, optimize_module, get_module_dependencies
 )
 from app.core.database import get_database
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from datetime import datetime
 
 router = APIRouter()
-db = get_database()
 
 @router.get("/")
-async def list_modules():
+async def list_modules(db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Lista todos os módulos disponíveis no sistema.
     """
@@ -19,7 +17,7 @@ async def list_modules():
     return {"modules": modules}
 
 @router.get("/{module_name}")
-async def get_module_details(module_name: str):
+async def get_module_details(module_name: str, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Retorna detalhes sobre um módulo específico.
     """
@@ -29,7 +27,7 @@ async def get_module_details(module_name: str):
     return {"module": module}
 
 @router.post("/create")
-async def create_new_module(request: dict):
+async def create_new_module(request: dict, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Cria um novo módulo interno ou externo, verificando se já existe um módulo com o mesmo nome.
     """
@@ -45,12 +43,12 @@ async def create_new_module(request: dict):
     module_type = request.get("module_type", "internal")  # internal | external
     description = request.get("description", "Módulo gerado pelo Chat Central")
     
-    result = await create_module(module_name, module_type, description)
+    result = await create_module(db, module_name, module_type, description)
 
     return {"message": f"Módulo '{module_name}' criado com sucesso!", "details": result}
 
 @router.put("/update/{module_name}")
-async def update_existing_module(module_name: str, request: dict):
+async def update_existing_module(module_name: str, request: dict, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Modifica um módulo existente, garantindo versionamento e rastreabilidade das mudanças.
     """
@@ -58,7 +56,7 @@ async def update_existing_module(module_name: str, request: dict):
     if not updates:
         raise HTTPException(status_code=400, detail="Nenhuma atualização fornecida.")
 
-    result = await update_module(module_name, updates)
+    result = await update_module(db, module_name, updates)
 
     # Registrar versão da atualização
     version_data = {
@@ -71,30 +69,30 @@ async def update_existing_module(module_name: str, request: dict):
     return {"message": f"Módulo '{module_name}' atualizado!", "details": result}
 
 @router.delete("/delete/{module_name}")
-async def delete_existing_module(module_name: str):
+async def delete_existing_module(module_name: str, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Remove um módulo do sistema, garantindo que ele não tenha dependências ativas antes da exclusão.
     """
-    dependencies = await get_module_dependencies(module_name)
+    dependencies = await get_module_dependencies(db, module_name)
     if dependencies:
         raise HTTPException(status_code=400, detail=f"O módulo '{module_name}' possui dependências e não pode ser excluído.")
 
-    result = await delete_module(module_name)
+    result = await delete_module(db, module_name)
     
     return {"message": f"Módulo '{module_name}' removido com sucesso!", "details": result}
 
 @router.post("/optimize/{module_name}")
-async def optimize_existing_module(module_name: str):
+async def optimize_existing_module(module_name: str, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     A IA analisa e melhora um módulo automaticamente.
     """
-    result = await optimize_module(module_name)
+    result = await optimize_module(db, module_name)
     return {"message": f"Módulo '{module_name}' otimizado!", "details": result}
 
 @router.get("/dependencies/{module_name}")
-async def get_module_dependency_list(module_name: str):
+async def get_module_dependency_list(module_name: str, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Retorna a lista de dependências de um módulo específico.
     """
-    dependencies = await get_module_dependencies(module_name)
+    dependencies = await get_module_dependencies(db, module_name)
     return {"module": module_name, "dependencies": dependencies}

@@ -1,22 +1,20 @@
-# app/api/v1/users.py
-
 from fastapi import APIRouter, HTTPException, Depends
 from app.services.user_manager import (
     create_user, update_user, delete_user, set_user_permission, authenticate_user, request_password_reset
 )
 from app.core.database import get_database
 from app.core.security import generate_jwt_token, hash_password, verify_password
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from datetime import datetime
 from bson import ObjectId
 
 router = APIRouter()
-db = get_database()
 
 # Dicionário para rastrear tentativas de login
 failed_login_attempts = {}
 
 @router.get("/")
-async def list_users():
+async def list_users(db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Lista todos os usuários cadastrados no sistema.
     """
@@ -24,7 +22,7 @@ async def list_users():
     return {"users": users}
 
 @router.get("/{user_id}")
-async def get_user_details(user_id: str):
+async def get_user_details(user_id: str, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Retorna detalhes sobre um usuário específico.
     """
@@ -38,7 +36,7 @@ async def get_user_details(user_id: str):
     return {"user": user}
 
 @router.post("/create")
-async def create_new_user(request: dict):
+async def create_new_user(request: dict, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Cria um novo usuário no sistema com senha segura e permissões definidas.
     """
@@ -52,11 +50,11 @@ async def create_new_user(request: dict):
 
     hashed_password = hash_password(password)
 
-    result = await create_user(username, email, hashed_password, role)
+    result = await create_user(db, username, email, hashed_password, role)
     return {"message": f"Usuário '{username}' criado com sucesso!", "details": result}
 
 @router.put("/update/{user_id}")
-async def update_existing_user(user_id: str, request: dict):
+async def update_existing_user(user_id: str, request: dict, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Modifica os dados de um usuário existente.
     """
@@ -67,22 +65,22 @@ async def update_existing_user(user_id: str, request: dict):
     if not updates:
         raise HTTPException(status_code=400, detail="Nenhuma atualização fornecida.")
 
-    result = await update_user(user_id, updates)
+    result = await update_user(db, user_id, updates)
     return {"message": f"Usuário '{user_id}' atualizado!", "details": result}
 
 @router.delete("/delete/{user_id}")
-async def delete_existing_user(user_id: str):
+async def delete_existing_user(user_id: str, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Remove um usuário do sistema.
     """
     if not ObjectId.is_valid(user_id):
         raise HTTPException(status_code=400, detail="ID de usuário inválido.")
 
-    result = await delete_user(user_id)
+    result = await delete_user(db, user_id)
     return {"message": f"Usuário '{user_id}' removido com sucesso!", "details": result}
 
 @router.post("/set-permission/{user_id}")
-async def set_user_permission_level(user_id: str, request: dict):
+async def set_user_permission_level(user_id: str, request: dict, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Define permissões específicas para um usuário.
     """
@@ -90,7 +88,7 @@ async def set_user_permission_level(user_id: str, request: dict):
         raise HTTPException(status_code=400, detail="ID de usuário inválido.")
 
     new_role = request.get("role", "user")  # admin | user | viewer
-    result = await set_user_permission(user_id, new_role)
+    result = await set_user_permission(db, user_id, new_role)
     return {"message": f"Permissão do usuário '{user_id}' alterada para '{new_role}'.", "details": result}
 
 @router.get("/roles")
@@ -106,7 +104,7 @@ async def get_user_roles():
     return {"roles": roles}
 
 @router.post("/login")
-async def login(request: dict):
+async def login(request: dict, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Autentica um usuário e retorna um token JWT seguro.
     Implementa proteção contra brute-force bloqueando usuários após 5 tentativas falhas.
@@ -117,7 +115,7 @@ async def login(request: dict):
     if not email or not password:
         raise HTTPException(status_code=400, detail="E-mail e senha são obrigatórios.")
 
-    user = await authenticate_user(email, password)
+    user = await authenticate_user(db, email, password)
     if not user:
         # Registra a tentativa falha
         failed_login_attempts[email] = failed_login_attempts.get(email, 0) + 1
@@ -135,7 +133,7 @@ async def login(request: dict):
     return {"message": "Login bem-sucedido!", "token": token}
 
 @router.post("/password-reset")
-async def password_reset(request: dict):
+async def password_reset(request: dict, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Envia um e-mail para redefinição de senha.
     """
@@ -143,5 +141,5 @@ async def password_reset(request: dict):
     if not email:
         raise HTTPException(status_code=400, detail="E-mail é obrigatório.")
 
-    result = await request_password_reset(email)
+    result = await request_password_reset(db, email)
     return {"message": "Se o e-mail estiver cadastrado, um link de redefinição será enviado.", "details": result}

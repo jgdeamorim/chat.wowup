@@ -1,23 +1,21 @@
-# app/api/v1/admin.py
-
 from fastapi import APIRouter, HTTPException, Depends
 from app.services.admin_manager import (
     update_system_config, get_system_logs, clear_logs, set_user_permission, remove_user, get_users_list
 )
 from app.core.database import get_database
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from datetime import datetime
 from bson import ObjectId
 
 router = APIRouter()
-db = get_database()
 
 @router.get("/system-status")
-async def get_system_status():
+async def get_system_status(db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Retorna o status geral do sistema e dos serviços ativos.
     """
     try:
-        db_status = "Online" if await db.client.server_info() else "Offline"
+        db_status = "Online" if await db.command("ping") else "Offline"
     except Exception:
         db_status = "Offline"
 
@@ -30,7 +28,7 @@ async def get_system_status():
     return {"system_status": status}
 
 @router.get("/configurations")
-async def get_system_configurations():
+async def get_system_configurations(db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Obtém as configurações atuais do sistema.
     """
@@ -41,34 +39,34 @@ async def get_system_configurations():
     return {"configurations": config}
 
 @router.put("/update-configurations")
-async def update_configurations(request: dict):
+async def update_configurations(request: dict, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Modifica as configurações gerais do sistema.
     """
     if not request:
         raise HTTPException(status_code=400, detail="Nenhuma configuração fornecida.")
 
-    result = await update_system_config(request)
+    result = await update_system_config(db, request)
     return {"message": "Configurações do sistema atualizadas com sucesso!", "details": result}
 
 @router.get("/logs")
-async def get_admin_logs(limit: int = 50):
+async def get_admin_logs(limit: int = 50, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Retorna os logs administrativos e de sistema, limitando a quantidade retornada.
     """
-    logs = await get_system_logs(limit)
+    logs = await get_system_logs(db, limit)
     return {"logs": logs}
 
 @router.delete("/clear-logs")
-async def clear_system_logs():
+async def clear_system_logs(db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Limpa os logs do sistema administrativo.
     """
-    result = await clear_logs()
+    result = await clear_logs(db)
     return {"message": "Logs do sistema foram limpos com sucesso!", "details": result}
 
 @router.post("/set-permission/{user_id}")
-async def set_permission(user_id: str, request: dict):
+async def set_permission(user_id: str, request: dict, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Define permissões para um usuário específico.
     """
@@ -79,19 +77,19 @@ async def set_permission(user_id: str, request: dict):
     if new_role not in ["admin", "user", "viewer"]:
         raise HTTPException(status_code=400, detail="Nível de permissão inválido.")
 
-    result = await set_user_permission(user_id, new_role)
+    result = await set_user_permission(db, user_id, new_role)
     return {"message": f"Permissão do usuário '{user_id}' alterada para '{new_role}'.", "details": result}
 
 @router.get("/users")
-async def list_users(limit: int = 50):
+async def list_users(limit: int = 50, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Lista todos os usuários cadastrados no sistema com um limite máximo de retorno.
     """
-    users = await get_users_list(limit)
+    users = await get_users_list(db, limit)
     return {"users": users}
 
 @router.delete("/remove-user/{user_id}")
-async def remove_user_from_system(user_id: str):
+async def remove_user_from_system(user_id: str, db: AsyncIOMotorDatabase = Depends(get_database)):
     """
     Remove um usuário do sistema de forma segura.
     """
@@ -102,5 +100,5 @@ async def remove_user_from_system(user_id: str):
     if not user:
         raise HTTPException(status_code=404, detail=f"Usuário '{user_id}' não encontrado.")
 
-    result = await remove_user(user_id)
+    result = await remove_user(db, user_id)
     return {"message": f"Usuário '{user_id}' removido com sucesso!", "details": result}
