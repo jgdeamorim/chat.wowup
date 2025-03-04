@@ -4,23 +4,21 @@ FROM python:3.11
 # Define o diretório de trabalho
 WORKDIR /app
 
-# Define a variável para garantir que o Python encontre os pacotes
+# Define a variável para encontrar pacotes Python corretamente
 ENV PYTHONPATH=/app
 
-# Copia apenas os arquivos necessários primeiro
+# Copia os arquivos de dependências primeiro para melhorar cache
 COPY requirements.txt .
 
 # Instala as dependências antes de copiar o código
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copia apenas a pasta `app/` corretamente
-COPY ./app /app
-
-# Copia `main.py` e demais arquivos necessários
+# Copia a pasta `app/` corretamente e o `main.py`
+COPY ./app /app/app
 COPY main.py /app
 
-# Exposição da porta
+# Expõe a porta
 EXPOSE 8000
 
-# Comando correto para rodar o FastAPI com Uvicorn
+# Comando correto para rodar FastAPI
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
