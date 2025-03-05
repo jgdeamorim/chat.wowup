@@ -26,7 +26,7 @@ BLOCK_TIME_MINUTES = int(os.getenv("BLOCK_TIME_MINUTES", 30))  # Tempo de bloque
 
 security = HTTPBearer()
 
-async def create_jwt_token(user_id: str, role: str):
+async def create_access_token(user_id: str, role: str):
     """
     Gera um token JWT válido para autenticação.
     """
@@ -34,6 +34,7 @@ async def create_jwt_token(user_id: str, role: str):
     payload = {"sub": user_id, "role": role, "exp": expiration}
     token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
     return token
+
 
 async def verify_jwt_token(credentials: HTTPAuthorizationCredentials = Security(security)):
     """

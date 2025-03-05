@@ -1,7 +1,7 @@
 # app/routes/users.py
 
 from fastapi import APIRouter, HTTPException, Depends
-from app.core.security import create_access_token, verify_password, get_password_hash
+from app.core.security import create_jwt_token, verify_password, get_password_hash
 from app.core.database import get_database
 from app.models.user_model import User
 from datetime import timedelta
@@ -37,5 +37,5 @@ async def login_user(email: str, password: str):
     if not user or not verify_password(password, user["password"]):
         raise HTTPException(status_code=401, detail="Credenciais inválidas.")
 
-    access_token = create_access_token(data={"sub": email}, expires_delta=timedelta(minutes=60))
+    access_token = await create_jwt_token(user_id=email, role="user")
     return {"access_token": access_token, "token_type": "bearer"}
