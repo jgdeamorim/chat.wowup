@@ -29,7 +29,7 @@ async def chat_with_ai(request: Dict[str, Any], db: AsyncIOMotorDatabase = Depen
 
         return {"response": response}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro no processamento do chat: {str(e)}")
+        return {"error": f"Erro no processamento do chat: {str(e)}"}
 
 @router.get("/history")
 async def get_chat_history(limit: int = 50, db: AsyncIOMotorDatabase = Depends(get_database)):
@@ -38,11 +38,9 @@ async def get_chat_history(limit: int = 50, db: AsyncIOMotorDatabase = Depends(g
     """
     try:
         chat_logs = await db["chat_history"].find().sort("timestamp", -1).limit(limit).to_list(length=limit)
-        if not chat_logs:
-            return {"message": "Nenhum histórico de chat encontrado."}
-        return {"history": chat_logs}
+        return {"history": chat_logs if chat_logs else "Nenhum histórico encontrado."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao recuperar histórico do chat: {str(e)}")
+        return {"error": f"Erro ao recuperar histórico do chat: {str(e)}"}
 
 @router.post("/create-module")
 async def create_internal_module(request: Dict[str, Any], db: AsyncIOMotorDatabase = Depends(get_database)):
@@ -57,7 +55,7 @@ async def create_internal_module(request: Dict[str, Any], db: AsyncIOMotorDataba
         result = await create_module(db, module_name)
         return {"message": f"Módulo '{module_name}' criado com sucesso!", "details": result}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao criar módulo: {str(e)}")
+        return {"error": f"Erro ao criar módulo: {str(e)}"}
 
 @router.post("/improve-module")
 async def improve_existing_module(request: Dict[str, Any], db: AsyncIOMotorDatabase = Depends(get_database)):
@@ -72,7 +70,7 @@ async def improve_existing_module(request: Dict[str, Any], db: AsyncIOMotorDatab
         result = await improve_module(db, module_name)
         return {"message": f"Módulo '{module_name}' aprimorado!", "details": result}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao melhorar módulo: {str(e)}")
+        return {"error": f"Erro ao melhorar módulo: {str(e)}"}
 
 @router.get("/suggestions")
 async def get_ai_suggestions(limit: int = 10, db: AsyncIOMotorDatabase = Depends(get_database)):
@@ -81,8 +79,6 @@ async def get_ai_suggestions(limit: int = 10, db: AsyncIOMotorDatabase = Depends
     """
     try:
         suggestions = await fetch_ai_suggestions(db, limit)
-        if not suggestions:
-            return {"message": "Nenhuma sugestão disponível no momento."}
-        return {"suggestions": suggestions}
+        return {"suggestions": suggestions if suggestions else "Nenhuma sugestão disponível."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao recuperar sugestões da IA: {str(e)}")
+        return {"error": f"Erro ao recuperar sugestões da IA: {str(e)}"}

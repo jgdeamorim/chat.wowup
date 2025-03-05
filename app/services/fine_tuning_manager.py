@@ -15,28 +15,30 @@ async def apply_fine_tuning() -> Dict[str, Any]:
         "adjustments": []
     }
 
-    # Ajuste de Segurança
-    security_tuning = await apply_security_tuning()
-    tuning_log["adjustments"].append(security_tuning)
+    # Aplicar ajustes individuais e validar erros
+    try:
+        security_tuning = await apply_security_tuning()
+        tuning_log["adjustments"].append(security_tuning)
 
-    # Ajuste de Performance
-    performance_tuning = await apply_performance_tuning()
-    tuning_log["adjustments"].append(performance_tuning)
+        performance_tuning = await apply_performance_tuning()
+        tuning_log["adjustments"].append(performance_tuning)
 
-    # Ajuste de UI/UX
-    uiux_tuning = await apply_uiux_tuning()
-    tuning_log["adjustments"].append(uiux_tuning)
+        uiux_tuning = await apply_uiux_tuning()
+        tuning_log["adjustments"].append(uiux_tuning)
 
-    # Salvar ajustes no histórico
-    await db["fine_tuning_history"].insert_one(tuning_log)
+        # Salvar ajustes no histórico
+        await db["fine_tuning_history"].insert_one(tuning_log)
 
-    return {"message": "Ajustes aplicados com sucesso!", "details": tuning_log}
+        return {"message": "Ajustes aplicados com sucesso!", "details": tuning_log}
+    
+    except Exception as e:
+        return {"error": f"Erro ao aplicar ajustes: {str(e)}"}
 
 async def apply_security_tuning() -> Dict[str, Any]:
     """
-    Aplica ajustes de segurança no sistema, fortalecendo autenticação e proteção contra ataques.
+    Aplica ajustes de segurança no sistema.
     """
-    tuning_result = {
+    return {
         "category": "security",
         "applied_changes": [
             "Melhoria na validação de JWT",
@@ -44,13 +46,12 @@ async def apply_security_tuning() -> Dict[str, Any]:
             "Proteção contra brute-force ativada"
         ]
     }
-    return tuning_result
 
 async def apply_performance_tuning() -> Dict[str, Any]:
     """
-    Aplica otimizações automáticas para melhorar a performance do sistema.
+    Aplica otimizações para melhorar a performance do sistema.
     """
-    tuning_result = {
+    return {
         "category": "performance",
         "applied_changes": [
             "Otimização de queries no banco de dados",
@@ -58,13 +59,12 @@ async def apply_performance_tuning() -> Dict[str, Any]:
             "Redução de tempo de resposta da API"
         ]
     }
-    return tuning_result
 
 async def apply_uiux_tuning() -> Dict[str, Any]:
     """
-    Aplica melhorias automáticas na interface e usabilidade do sistema.
+    Aplica melhorias na interface e usabilidade do sistema.
     """
-    tuning_result = {
+    return {
         "category": "uiux",
         "applied_changes": [
             "Ajuste nos componentes visuais",
@@ -72,7 +72,6 @@ async def apply_uiux_tuning() -> Dict[str, Any]:
             "Sugestões de UI/UX baseadas em analytics"
         ]
     }
-    return tuning_result
 
 async def rollback_last_tuning() -> Dict[str, Any]:
     """

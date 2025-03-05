@@ -43,7 +43,7 @@ class Database:
                     logger.error("❌ Falha ao conectar ao Redis.")
 
         except Exception as e:
-            logger.error(f"❌ Erro ao conectar ao banco de dados: {e}")
+            logger.error(f"❌ Erro ao conectar ao banco de dados: {str(e)}")
             raise e
 
     async def disconnect(self):
@@ -60,7 +60,7 @@ class Database:
                 logger.info("🔌 Conexão com Redis fechada.")
 
         except Exception as e:
-            logger.error(f"❌ Erro ao fechar conexões: {e}")
+            logger.error(f"❌ Erro ao fechar conexões: {str(e)}")
 
     async def check_connection(self):
         """
@@ -82,7 +82,7 @@ class Database:
                     await self.connect()
 
         except Exception as e:
-            logger.error(f"❌ Erro na verificação da conexão: {e}")
+            logger.error(f"❌ Erro na verificação da conexão: {str(e)}")
             await self.connect()
 
     async def get_database(self):
