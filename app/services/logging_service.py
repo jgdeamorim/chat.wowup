@@ -4,8 +4,6 @@ import logging
 from datetime import datetime
 from app.core.database import get_database
 
-db = get_database()
-
 # Configuração do logging para evitar conflitos de threads
 logging.basicConfig(
     filename="storage/logs/system.log",
@@ -17,6 +15,8 @@ async def log_event(event: str, level: str = "INFO"):
     """
     Registra eventos no banco de dados e no arquivo de logs do sistema.
     """
+    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    
     log_data = {
         "event": event,
         "level": level,
@@ -24,7 +24,7 @@ async def log_event(event: str, level: str = "INFO"):
     }
 
     try:
-        await db["logs"].insert_one(log_data)
+        await db["logs"].insert_one(log_data)  # 🔹 Garantindo gravação assíncrona correta
         logging.log(getattr(logging, level, logging.INFO), event)
         return {"response": f"Log registrado: {event} - Nível: {level}"}
     except Exception as e:
@@ -34,6 +34,8 @@ async def get_recent_logs(limit: int = 50):
     """
     Retorna os últimos logs do sistema.
     """
+    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    
     try:
         logs = await db["logs"].find().sort("timestamp", -1).limit(limit).to_list(None)
         return {"logs": logs}

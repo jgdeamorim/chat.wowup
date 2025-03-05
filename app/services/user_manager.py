@@ -6,12 +6,12 @@ from app.core.security import hash_password, verify_password
 from typing import Dict, Any
 from bson import ObjectId
 
-db = get_database()
-
 async def create_user(username: str, email: str, password: str, role: str = "user") -> Dict[str, Any]:
     """
     Cria um novo usuário no sistema.
     """
+    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    
     hashed_password = hash_password(password)
     user_data = {
         "username": username,
@@ -29,16 +29,25 @@ async def authenticate_user(email: str, password: str) -> Dict[str, Any]:
     """
     Autentica um usuário e retorna um token JWT seguro.
     """
+    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    
     user = await db["users"].find_one({"email": email})
     if not user or not verify_password(password, user["hashed_password"]):
         return {"error": "Credenciais inválidas."}
 
-    return {"message": "Login bem-sucedido!", "user_id": str(user["_id"])}
+    return {
+        "message": "Login bem-sucedido!",
+        "user_id": str(user["_id"]),
+        "username": user["username"],
+        "role": user["role"]
+    }
 
 async def update_user(user_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
     """
     Modifica os dados de um usuário existente.
     """
+    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    
     updates["updated_at"] = datetime.utcnow()
     result = await db["users"].update_one({"_id": ObjectId(user_id)}, {"$set": updates})
     

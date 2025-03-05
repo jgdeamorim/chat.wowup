@@ -4,14 +4,14 @@ from datetime import datetime
 from app.core.database import get_database
 from fastapi import HTTPException
 from bson import ObjectId
-from typing import Dict, Any, Optional
-
-db = get_database()
+from typing import Dict, Any
 
 async def create_version(module_name: str, changes: Dict[str, Any]) -> Dict[str, Any]:
     """
     Cria uma nova versão de um módulo, armazenando as alterações feitas.
     """
+    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    
     version_data = {
         "module_name": module_name,
         "changes": changes,
@@ -28,6 +28,8 @@ async def get_version_history(module_name: str) -> Dict[str, Any]:
     """
     Retorna o histórico de versões de um módulo específico.
     """
+    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    
     versions = await db["versioning"].find({"module_name": module_name}).sort("created_at", -1).to_list(length=50)
 
     if not versions:
@@ -39,6 +41,8 @@ async def rollback_version(version_id: str) -> Dict[str, Any]:
     """
     Reverte um módulo para uma versão específica.
     """
+    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    
     if not ObjectId.is_valid(version_id):
         raise HTTPException(status_code=400, detail="ID de versão inválido.")
 
@@ -55,6 +59,8 @@ async def compare_versions(version_id_1: str, version_id_2: str) -> Dict[str, An
     """
     Compara duas versões do mesmo módulo e exibe as diferenças.
     """
+    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    
     if not ObjectId.is_valid(version_id_1) or not ObjectId.is_valid(version_id_2):
         raise HTTPException(status_code=400, detail="IDs de versão inválidos.")
 

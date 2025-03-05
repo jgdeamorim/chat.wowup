@@ -4,12 +4,12 @@ from datetime import datetime
 from app.core.database import get_database
 from typing import Dict, Any
 
-db = get_database()
-
 async def apply_fine_tuning() -> Dict[str, Any]:
     """
     Aplica ajustes automáticos da IA com base no aprendizado contínuo.
     """
+    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    
     tuning_log = {
         "timestamp": datetime.utcnow(),
         "adjustments": []
@@ -77,6 +77,8 @@ async def rollback_last_tuning() -> Dict[str, Any]:
     """
     Reverte o último ajuste fino aplicado pela IA.
     """
+    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    
     last_tuning = await db["fine_tuning_history"].find_one(sort=[("timestamp", -1)])
     if not last_tuning:
         return {"message": "Nenhum ajuste foi encontrado para rollback."}

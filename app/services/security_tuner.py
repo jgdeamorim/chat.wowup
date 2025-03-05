@@ -6,38 +6,42 @@ from app.core.security import hash_password
 from fastapi import HTTPException
 from typing import Dict, Any
 
-db = get_database()
-
 async def analyze_security_threats() -> Dict[str, Any]:
     """
     Analisa logs do sistema para identificar padrões suspeitos e possíveis ameaças.
     """
+    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    
     security_report = {
         "timestamp": datetime.utcnow(),
         "detected_issues": []
     }
 
-    # Verificação de tentativas de login falhas excessivas
-    brute_force_attempts = await detect_brute_force_attacks()
-    if brute_force_attempts:
-        security_report["detected_issues"].append(brute_force_attempts)
+    try:
+        # Verificação de tentativas de login falhas excessivas
+        brute_force_attempts = await detect_brute_force_attacks(db)
+        if brute_force_attempts:
+            security_report["detected_issues"].append(brute_force_attempts)
 
-    # Verificação de acessos suspeitos
-    suspicious_access = await detect_suspicious_access()
-    if suspicious_access:
-        security_report["detected_issues"].append(suspicious_access)
+        # Verificação de acessos suspeitos
+        suspicious_access = await detect_suspicious_access(db)
+        if suspicious_access:
+            security_report["detected_issues"].append(suspicious_access)
 
-    # Verificação de permissões inválidas
-    permission_issues = await detect_permission_misuse()
-    if permission_issues:
-        security_report["detected_issues"].append(permission_issues)
+        # Verificação de permissões inválidas
+        permission_issues = await detect_permission_misuse(db)
+        if permission_issues:
+            security_report["detected_issues"].append(permission_issues)
 
-    # Registrar relatório de segurança no banco de dados
-    await db["security_audit"].insert_one(security_report)
+        # Registrar relatório de segurança no banco de dados
+        await db["security_audit"].insert_one(security_report)
 
-    return {"message": "Análise de segurança concluída!", "details": security_report}
+        return {"message": "Análise de segurança concluída!", "details": security_report}
 
-async def detect_brute_force_attacks() -> Dict[str, Any]:
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro na análise de segurança: {str(e)}")
+
+async def detect_brute_force_attacks(db) -> Dict[str, Any]:
     """
     Detecta tentativas excessivas de login falhas que indicam possível ataque de força bruta.
     """
@@ -59,7 +63,7 @@ async def detect_brute_force_attacks() -> Dict[str, Any]:
         }
     return {}
 
-async def detect_suspicious_access() -> Dict[str, Any]:
+async def detect_suspicious_access(db) -> Dict[str, Any]:
     """
     Identifica acessos suspeitos com base em localização geográfica ou horários incomuns.
     """
@@ -80,7 +84,7 @@ async def detect_suspicious_access() -> Dict[str, Any]:
         }
     return {}
 
-async def detect_permission_misuse() -> Dict[str, Any]:
+async def detect_permission_misuse(db) -> Dict[str, Any]:
     """
     Detecta tentativas de acesso indevido a módulos administrativos por usuários sem permissão.
     """
@@ -101,6 +105,8 @@ async def block_ip(ip_address: str) -> Dict[str, Any]:
     """
     Bloqueia um IP automaticamente ao detectar atividades maliciosas.
     """
+    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    
     await db["blocked_ips"].insert_one({"ip_address": ip_address, "timestamp": datetime.utcnow()})
     return {"message": f"IP {ip_address} bloqueado devido a atividades suspeitas."}
 
@@ -108,5 +114,7 @@ async def log_security_event(event: Dict[str, Any]):
     """
     Registra um evento de segurança no banco de dados para rastreamento.
     """
+    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    
     event["timestamp"] = datetime.utcnow()
     await db["security_events"].insert_one(event)

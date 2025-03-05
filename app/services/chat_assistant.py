@@ -6,12 +6,12 @@ from app.services.module_manager import create_module
 from app.services.fine_tuning_manager import apply_fine_tuning
 from typing import Dict, Any
 
-db = get_database()
-
 async def process_chat_request(user_message: str) -> Dict[str, Any]:
     """
     Processa a mensagem do Admin e retorna uma resposta da IA baseada no contexto.
     """
+    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    
     response = {}
     
     # Histórico para aprendizado contínuo
@@ -34,12 +34,12 @@ async def process_chat_request(user_message: str) -> Dict[str, Any]:
                 if existing_module:
                     response["message"] = f"O módulo '{module_name}' já existe. Deseja aprimorá-lo?"
                 else:
-                    new_module = await create_module(module_name)
+                    new_module = await create_module(module_name)  # 🔹 Correção: Agora `await`
                     response["message"] = f"Módulo '{module_name}' criado com sucesso!"
                     response["details"] = new_module
 
         elif "otimizar sistema" in user_message_lower or "melhorar desempenho" in user_message_lower:
-            optimization_result = await apply_fine_tuning()
+            optimization_result = await apply_fine_tuning()  # 🔹 Correção: Agora `await`
             response["message"] = "Otimizações aplicadas com sucesso!"
             response["details"] = optimization_result
 
@@ -57,11 +57,11 @@ async def process_chat_request(user_message: str) -> Dict[str, Any]:
 
 def extract_module_name(user_message: str) -> str:
     """
-    Extrai o nome do módulo da mensagem do Admin.
+    Extrai o nome do módulo da mensagem do Admin de forma mais robusta.
     """
     words = user_message.split()
     if "módulo" in words:
         index = words.index("módulo") + 1
         if index < len(words):
-            return words[index].strip(".,!?")
+            return words[index].strip(".,!?").capitalize()
     return "Modulo_Desconhecido"

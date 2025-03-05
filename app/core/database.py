@@ -1,3 +1,5 @@
+# app/core/database.py
+
 import logging
 import motor.motor_asyncio
 import redis.asyncio as redis
@@ -14,6 +16,7 @@ logger.setLevel(logging.INFO)
 # Configuração do MongoDB
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://crossover.proxy.rlwy.net:52597")
 DATABASE_NAME = os.getenv("DATABASE_NAME", "chat_central")
+MONGO_TIMEOUT_MS = int(os.getenv("MONGO_TIMEOUT_MS", 5000))  # Timeout de 5 segundos
 
 # Configuração do Redis
 REDIS_URI = os.getenv("REDIS_URI", "redis://maglev.proxy.rlwy.net:17929")
@@ -31,7 +34,9 @@ class Database:
         """
         try:
             if not self.client:
-                self.client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
+                self.client = motor.motor_asyncio.AsyncIOMotorClient(
+                    MONGO_URI, serverSelectionTimeoutMS=MONGO_TIMEOUT_MS
+                )
                 self.db = self.client[DATABASE_NAME]
                 logger.info("✅ Conectado ao MongoDB com sucesso.")
 
@@ -41,7 +46,6 @@ class Database:
                     logger.info("✅ Conectado ao Redis com sucesso.")
                 else:
                     logger.error("❌ Falha ao conectar ao Redis.")
-
         except Exception as e:
             logger.error(f"❌ Erro ao conectar ao banco de dados: {str(e)}")
             raise e
@@ -68,11 +72,12 @@ class Database:
         """
         try:
             if self.db:
-                await self.db.command("ping")
-                logger.info("✅ MongoDB está online.")
-            else:
-                logger.warning("⚠️ Conexão com MongoDB perdida. Tentando reconectar...")
-                await self.connect()
+                try:
+                    await self.db.command("ping")
+                    logger.info("✅ MongoDB está online.")
+                except Exception:
+                    logger.warning("⚠️ Conexão com MongoDB perdida. Tentando reconectar...")
+                    await self.connect()
 
             if self.redis:
                 if await self.redis.ping():

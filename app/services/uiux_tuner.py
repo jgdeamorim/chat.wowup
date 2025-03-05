@@ -2,12 +2,12 @@
 
 from app.core.database import get_database
 
-db = get_database()
-
 async def analyze_uiux():
     """
     Verifica padrões de interface e sugere melhorias de UI/UX.
     """
+    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    
     ui_suggestions = []
 
     # Avaliação da estrutura do frontend
@@ -22,5 +22,7 @@ async def apply_ui_fixes():
     """
     Aplica automaticamente as melhorias sugeridas para UI/UX.
     """
+    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    
     await db["frontend_settings"].update_one({}, {"$set": {"active_theme": "modern"}})
     return {"response": "Tema atualizado para 'modern' e otimizações aplicadas!"}
