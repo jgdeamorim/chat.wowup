@@ -1,5 +1,3 @@
-# app/services/versioning_service.py
-
 from datetime import datetime
 from app.core.database import get_database
 from fastapi import HTTPException
@@ -10,7 +8,7 @@ async def create_version(module_name: str, changes: Dict[str, Any]) -> Dict[str,
     """
     Cria uma nova versão de um módulo, armazenando as alterações feitas.
     """
-    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    db = await get_database()
     
     version_data = {
         "module_name": module_name,
@@ -28,7 +26,7 @@ async def get_version_history(module_name: str) -> Dict[str, Any]:
     """
     Retorna o histórico de versões de um módulo específico.
     """
-    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    db = await get_database()
     
     versions = await db["versioning"].find({"module_name": module_name}).sort("created_at", -1).to_list(length=50)
 
@@ -41,7 +39,7 @@ async def rollback_version(version_id: str) -> Dict[str, Any]:
     """
     Reverte um módulo para uma versão específica.
     """
-    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    db = await get_database()
     
     if not ObjectId.is_valid(version_id):
         raise HTTPException(status_code=400, detail="ID de versão inválido.")
@@ -59,7 +57,7 @@ async def compare_versions(version_id_1: str, version_id_2: str) -> Dict[str, An
     """
     Compara duas versões do mesmo módulo e exibe as diferenças.
     """
-    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
+    db = await get_database()
     
     if not ObjectId.is_valid(version_id_1) or not ObjectId.is_valid(version_id_2):
         raise HTTPException(status_code=400, detail="IDs de versão inválidos.")
@@ -81,3 +79,21 @@ async def compare_versions(version_id_1: str, version_id_2: str) -> Dict[str, An
         "version_2": version_id_2,
         "differences": differences
     }
+
+async def version_project(module_name: str, action: str) -> Dict[str, Any]:
+    """
+    Registra uma nova versão do módulo com uma descrição da alteração.
+    """
+    db = await get_database()
+    
+    version_data = {
+        "module_name": module_name,
+        "changes": {"action": action},
+        "created_at": datetime.utcnow(),
+        "status": "active"
+    }
+
+    result = await db["versioning"].insert_one(version_data)
+    version_id = str(result.inserted_id)
+
+    return {"message": f"Versão registrada para o módulo '{module_name}'", "version_id": version_id}

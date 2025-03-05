@@ -3,7 +3,8 @@
 from fastapi import APIRouter, HTTPException
 from app.core.database import get_database
 from app.models.module_model import ModuleEntry as Module
-from app.services.versioning_service import version_project
+from app.services.versioning_service import create_version, get_version_history, version_project
+
 
 router = APIRouter()
 
