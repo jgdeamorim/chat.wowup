@@ -35,8 +35,6 @@ async def create_access_token(user_id: str, role: str):
     token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
     return token
 
-
-
 async def verify_jwt_token(credentials: HTTPAuthorizationCredentials = Security(security)):
     """
     Valida um token JWT e retorna suas informações.
@@ -58,11 +56,9 @@ async def hash_password(password: str):
     hashed = bcrypt.hashpw(password.encode(), salt)
     return hashed.decode()
 
-async def verify_password(password: str, hashed_password: str):
-    """
-    Verifica se a senha fornecida corresponde ao hash armazenado.
-    """
-    return bcrypt.checkpw(password.encode(), hashed_password.encode())
+async def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+
 
 async def is_ip_blocked(ip_address: str):
     """
@@ -111,3 +107,7 @@ async def is_token_blacklisted(token: str):
     redis = await get_redis()
     if await redis.get(f"blacklist:{token}"):
         raise HTTPException(status_code=401, detail="Token inválido ou expirado.")
+
+async def get_password_hash(password: str) -> str:
+    hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    return hashed.decode('utf-8')

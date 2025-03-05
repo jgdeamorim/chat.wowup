@@ -28,14 +28,11 @@ async def register_user(user: User):
 
 @router.post("/login")
 async def login_user(email: str, password: str):
-    """
-    Autentica um usuário e retorna um token JWT.
-    """
-    db = await get_database()  # 🔹 Correção: Adicionado `await get_database()`
-    
+    db = await get_database()
     user = await db["users"].find_one({"email": email})
     if not user or not verify_password(password, user["password"]):
         raise HTTPException(status_code=401, detail="Credenciais inválidas.")
 
-    access_token = await create_access_token(user_id=email, role="user")
+    access_token = await create_access_token(user_id=user["email"], role="user")
     return {"access_token": access_token, "token_type": "bearer"}
+
