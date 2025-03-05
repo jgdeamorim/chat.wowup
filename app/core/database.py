@@ -14,12 +14,12 @@ logger = logging.getLogger("database")
 logger.setLevel(logging.INFO)
 
 # Configuração do MongoDB
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://crossover.proxy.rlwy.net:52597")
-DATABASE_NAME = os.getenv("DATABASE_NAME", "chat_central")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongo:<SENHA>@crossover.proxy.rlwy.net:52597/ia-dev?authSource=admin")
+DATABASE_NAME = os.getenv("DATABASE_NAME", "ia-dev")
 MONGO_TIMEOUT_MS = int(os.getenv("MONGO_TIMEOUT_MS", 5000))  # Timeout de 5 segundos
 
 # Configuração do Redis
-REDIS_URI = os.getenv("REDIS_URI", "redis://maglev.proxy.rlwy.net:17929")
+REDIS_URI = os.getenv("REDIS_URI", "redis://default:vhgrbzyLFjusFfvJBznMBLyuOtJhHQOq@maglev.proxy.rlwy.net:17929")
 
 # Inicializa clientes de banco de dados
 class Database:
