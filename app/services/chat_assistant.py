@@ -20,30 +20,39 @@ async def process_chat_request(user_message: str) -> Dict[str, Any]:
         "user_message": user_message
     }
     
-    # Analisando a intenção da mensagem
-    if "criar módulo" in user_message.lower():
-        module_name = extract_module_name(user_message)
-        existing_module = await db["modules"].find_one({"name": module_name})
+    try:
+        # Analisando a intenção da mensagem
+        user_message_lower = user_message.lower()
 
-        if existing_module:
-            response["message"] = f"O módulo '{module_name}' já existe. Deseja aprimorá-lo?"
+        if "criar módulo" in user_message_lower or "novo módulo" in user_message_lower:
+            module_name = extract_module_name(user_message)
+            if not module_name or module_name == "Modulo_Desconhecido":
+                response["message"] = "Por favor, especifique o nome do módulo que deseja criar."
+            else:
+                existing_module = await db["modules"].find_one({"name": module_name})
+
+                if existing_module:
+                    response["message"] = f"O módulo '{module_name}' já existe. Deseja aprimorá-lo?"
+                else:
+                    new_module = await create_module(module_name)
+                    response["message"] = f"Módulo '{module_name}' criado com sucesso!"
+                    response["details"] = new_module
+
+        elif "otimizar sistema" in user_message_lower or "melhorar desempenho" in user_message_lower:
+            optimization_result = await apply_fine_tuning()
+            response["message"] = "Otimizações aplicadas com sucesso!"
+            response["details"] = optimization_result
+
         else:
-            new_module = await create_module(module_name)
-            response["message"] = f"Módulo '{module_name}' criado com sucesso!"
-            response["details"] = new_module
+            response["message"] = "Desculpe, não entendi sua solicitação. Poderia reformular?"
 
-    elif "otimizar sistema" in user_message.lower():
-        optimization_result = await apply_fine_tuning()
-        response["message"] = "Otimizações aplicadas com sucesso!"
-        response["details"] = optimization_result
+        # Salvando no histórico do chat
+        chat_log["ai_response"] = response
+        await db["chat_history"].insert_one(chat_log)
 
-    else:
-        response["message"] = "Desculpe, não entendi sua solicitação. Poderia reformular?"
-
-    # Salvando no histórico do chat
-    chat_log["ai_response"] = response
-    await db["chat_history"].insert_one(chat_log)
-
+    except Exception as e:
+        response["message"] = f"Erro ao processar a solicitação: {str(e)}"
+    
     return response
 
 def extract_module_name(user_message: str) -> str:
@@ -53,5 +62,6 @@ def extract_module_name(user_message: str) -> str:
     words = user_message.split()
     if "módulo" in words:
         index = words.index("módulo") + 1
-        return words[index] if index < len(words) else "Modulo_Desconhecido"
+        if index < len(words):
+            return words[index].strip(".,!?")
     return "Modulo_Desconhecido"

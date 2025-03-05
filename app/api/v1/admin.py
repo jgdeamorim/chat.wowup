@@ -1,3 +1,5 @@
+#app/api/v1/admin.py
+
 from fastapi import APIRouter, HTTPException, Depends
 from app.services.admin_manager import (
     update_system_config, get_system_logs, clear_logs, set_user_permission, remove_user, get_users_list
