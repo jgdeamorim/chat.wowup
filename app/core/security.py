@@ -36,6 +36,7 @@ async def create_access_token(user_id: str, role: str):
     return token
 
 
+
 async def verify_jwt_token(credentials: HTTPAuthorizationCredentials = Security(security)):
     """
     Valida um token JWT e retorna suas informações.
