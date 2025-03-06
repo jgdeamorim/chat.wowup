@@ -3,6 +3,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from app.core.security import admin_required
 from app.core.database import get_database
+from app.core.security import admin_required
 
 router = APIRouter()
 

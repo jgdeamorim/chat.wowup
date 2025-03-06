@@ -111,3 +111,18 @@ async def is_token_blacklisted(token: str):
 async def get_password_hash(password: str) -> str:
     hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
     return hashed.decode('utf-8')
+
+async def admin_required(credentials: HTTPAuthorizationCredentials = Security(security)):
+    """
+    Middleware de segurança que verifica se o usuário é admin.
+    """
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get("role") != "admin":
+            raise HTTPException(status_code=403, detail="Acesso negado: somente administradores podem acessar esta rota.")
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expirado.")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Token inválido.")
