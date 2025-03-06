@@ -17,7 +17,7 @@ async def register_user(user: UserCreate):
     Registra um novo usuário no sistema.
     """
     db = await get_database()
-    
+
     if db is None:
         logger.error("❌ Erro ao conectar ao banco de dados.")
         raise HTTPException(status_code=500, detail="Erro ao conectar ao banco de dados.")
@@ -28,12 +28,15 @@ async def register_user(user: UserCreate):
         logger.warning("⚠️ Criando coleção 'users' no MongoDB...")
         await db.create_collection("users")
 
+    # Verifica se o usuário já está cadastrado
     existing_user = await db["users"].find_one({"email": user.email})
     if existing_user:
         raise HTTPException(status_code=400, detail="Usuário já cadastrado.")
 
-    hashed_password = get_password_hash(user.password)
+    # Garante que a senha seja devidamente hashada antes de salvar no banco
+    hashed_password = await get_password_hash(user.password)
 
+    # Criando o objeto de dados do usuário para salvar no banco de dados
     user_data = UserDB(
         username=user.username,
         email=user.email,
@@ -43,6 +46,7 @@ async def register_user(user: UserCreate):
         updated_at=datetime.utcnow()
     ).dict()
 
+    # Insere o usuário na coleção 'users'
     await db["users"].insert_one(user_data)
     logger.info(f"✅ Novo usuário registrado: {user.email}")
     return {"response": "Usuário registrado com sucesso!"}
@@ -53,13 +57,13 @@ async def login_user(email: str, password: str):
     Realiza login e retorna um token de acesso.
     """
     db = await get_database()
-    
+
     if db is None:
         logger.error("❌ Erro ao conectar ao banco de dados.")
         raise HTTPException(status_code=500, detail="Erro ao conectar ao banco de dados.")
 
     user = await db["users"].find_one({"email": email})
-    if not user or not verify_password(password, user["hashed_password"]):
+    if not user or not await verify_password(password, user["hashed_password"]):
         logger.warning(f"⚠️ Tentativa de login falha para {email}")
         raise HTTPException(status_code=401, detail="Credenciais inválidas.")
 
@@ -82,6 +86,7 @@ async def list_users():
             logger.warning("⚠️ Nenhum usuário cadastrado ainda.")
             return {"users": []}
 
+        # Seleciona os dados dos usuários, omitindo a senha
         users = await db["users"].find({}, {"_id": 0, "hashed_password": 0}).to_list(None)
         return {"users": users}
 
