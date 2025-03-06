@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from app.core.security import create_access_token, verify_password, get_password_hash
 from app.core.database import get_database
 from app.models.user_model import User
@@ -11,18 +11,21 @@ logger.setLevel(logging.INFO)
 
 router = APIRouter()
 
-@router.post("/register")
+@router.post("/register", summary="Registra um novo usuário")
 async def register_user(user: User):
     """
     Registra um novo usuário no sistema.
     """
     db = await get_database()
-
-    if db is None:
+    
+    if not db:
+        logger.error("❌ Erro ao conectar ao banco de dados.")
         raise HTTPException(status_code=500, detail="Erro ao conectar ao banco de dados.")
 
-    # Verifica se a coleção 'users' já existe
-    if "users" not in await db.list_collection_names():
+    # Verifica se a coleção 'users' existe
+    collections = await db.list_collection_names()
+    if "users" not in collections:
+        logger.warning("⚠️ Criando coleção 'users' no MongoDB...")
         await db.create_collection("users")
 
     existing_user = await db["users"].find_one({"email": user.email})
@@ -30,8 +33,8 @@ async def register_user(user: User):
         raise HTTPException(status_code=400, detail="Usuário já cadastrado.")
 
     hashed_password = get_password_hash(user.password)
-    
-    user_data = user.dict()
+
+    user_data = user.dict(exclude_unset=True)
     user_data.pop("id", None)  # Remove ID caso esteja presente
     user_data["password"] = hashed_password
     user_data["created_at"] = datetime.utcnow()
@@ -41,18 +44,24 @@ async def register_user(user: User):
     logger.info(f"✅ Novo usuário registrado: {user.email}")
     return {"response": "Usuário registrado com sucesso!"}
 
-@router.post("/login")
+@router.post("/login", summary="Realiza login e retorna um token de acesso")
 async def login_user(email: str, password: str):
     """
     Realiza login e retorna um token de acesso.
     """
     db = await get_database()
     
+    if not db:
+        logger.error("❌ Erro ao conectar ao banco de dados.")
+        raise HTTPException(status_code=500, detail="Erro ao conectar ao banco de dados.")
+
     user = await db["users"].find_one({"email": email})
     if not user or not verify_password(password, user["password"]):
+        logger.warning(f"⚠️ Tentativa de login falha para {email}")
         raise HTTPException(status_code=401, detail="Credenciais inválidas.")
 
     access_token = await create_access_token(user_id=user["email"], role=user["role"])
+    logger.info(f"🔑 Token gerado para {email}")
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/", summary="Lista todos os usuários cadastrados")
@@ -63,7 +72,7 @@ async def list_users():
     try:
         db = await get_database()
 
-        if db is None:
+        if not db:
             raise HTTPException(status_code=500, detail="Erro ao conectar ao banco de dados.")
 
         if "users" not in await db.list_collection_names():
