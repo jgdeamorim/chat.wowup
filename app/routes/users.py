@@ -36,3 +36,11 @@ async def login_user(email: str, password: str):
     access_token = await create_access_token(user_id=user["email"], role="user")
     return {"access_token": access_token, "token_type": "bearer"}
 
+@router.get("/", summary="Lista todos os usuários")
+async def list_users():
+    """
+    Retorna uma lista de usuários cadastrados.
+    """
+    db = await get_database()
+    users = await db["users"].find({}, {"_id": 0, "password": 0}).to_list(None)  # Evita exibir senha
+    return {"users": users}
