@@ -35,7 +35,7 @@ class Database:
         Conecta ao MongoDB e Redis, garantindo a disponibilidade do banco de dados.
         """
         try:
-            if not self.client:
+            if self.client is None:
                 logger.info("🔹 Conectando ao MongoDB...")
                 self.client = motor.motor_asyncio.AsyncIOMotorClient(
                     MONGO_URI, serverSelectionTimeoutMS=MONGO_TIMEOUT_MS
@@ -46,7 +46,7 @@ class Database:
                 if await self.db.command("ping"):
                     logger.info("✅ Conectado ao MongoDB com sucesso.")
 
-            if not self.redis:
+            if self.redis is None:
                 logger.info("🔹 Conectando ao Redis...")
                 self.redis = redis.Redis.from_url(REDIS_URI, decode_responses=True)
                 
@@ -64,11 +64,11 @@ class Database:
         Fecha as conexões com MongoDB e Redis quando o sistema for desligado.
         """
         try:
-            if self.client:
-                self.client.close()  # ❗️ Corrigido: `close()` não é assíncrono
+            if self.client is not None:
+                self.client.close()  # `close()` não é assíncrono
                 logger.info("🔌 Conexão com MongoDB fechada.")
 
-            if self.redis:
+            if self.redis is not None:
                 await self.redis.close()
                 logger.info("🔌 Conexão com Redis fechada.")
 
@@ -80,20 +80,13 @@ class Database:
         Verifica se as conexões com MongoDB e Redis estão ativas e, se necessário, tenta reconectar.
         """
         try:
-            if self.db:
-                try:
-                    if await self.db.command("ping"):
-                        logger.info("✅ MongoDB está online.")
-                except Exception:
-                    logger.warning("⚠️ Conexão com MongoDB perdida. Tentando reconectar...")
-                    await self.connect()
+            if self.db is None:
+                logger.warning("⚠️ Conexão com MongoDB perdida. Tentando reconectar...")
+                await self.connect()
 
-            if self.redis:
-                if await self.redis.ping():
-                    logger.info("✅ Redis está online.")
-                else:
-                    logger.warning("⚠️ Conexão com Redis perdida. Tentando reconectar...")
-                    await self.connect()
+            if self.redis is not None and not await self.redis.ping():
+                logger.warning("⚠️ Conexão com Redis perdida. Tentando reconectar...")
+                await self.connect()
 
         except Exception as e:
             logger.error(f"❌ Erro na verificação da conexão: {str(e)}")
@@ -103,11 +96,11 @@ class Database:
         """
         Retorna a conexão ativa com o banco de dados.
         """
-        if not self.client or not self.db:
+        if self.client is None or self.db is None:
             logger.warning("⚠️ Nenhuma conexão ativa com MongoDB. Tentando reconectar...")
             await self.connect()
 
-        if not self.db:
+        if self.db is None:
             raise ConnectionError("❌ Erro: Banco de dados não disponível após reconexão!")
 
         return self.db
@@ -116,7 +109,7 @@ class Database:
         """
         Retorna a conexão ativa com o Redis.
         """
-        if not self.redis:
+        if self.redis is None:
             await self.connect()
         return self.redis
 
