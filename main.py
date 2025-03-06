@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routes import users  # Confirme se está importando corretamente
+from app.routes import users, modules, admin, deploy, logs, frontend_sync  # <-- Certifique-se de importar todas as rotas!
 from app.core.database import database
 from config.settings import settings
 
@@ -33,8 +33,13 @@ async def shutdown_event():
     logger.warning("⚠️ Encerrando conexões do banco de dados...")
     await database.client.close()
 
-# 📌 Certifique-se de que a linha abaixo está presente e correta:
-app.include_router(users.router, prefix="/users", tags=["Usuários"])  # <-- Adicione essa linha!
+# 📌 🔹 Agora incluindo TODAS as rotas corretamente!
+app.include_router(users.router, prefix="/users", tags=["Usuários"])
+app.include_router(modules.router, prefix="/modules", tags=["Módulos"])
+app.include_router(admin.router, prefix="/admin", tags=["Administração"])
+app.include_router(deploy.router, prefix="/deploy", tags=["Deploy"])
+app.include_router(logs.router, prefix="/logs", tags=["Logs"])
+app.include_router(frontend_sync.router, prefix="/frontend-sync", tags=["Frontend Sync"])
 
 # Endpoint de status do sistema
 @app.get("/")
