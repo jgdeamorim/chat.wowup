@@ -1,5 +1,3 @@
-# app/models/frontend_model.py
-
 from datetime import datetime
 from pydantic import BaseModel
 from typing import List, Optional
@@ -28,6 +26,14 @@ class PageModel(BaseModel):
     rota: str
     componentes: List[PageComponent]
     ultima_atualizacao: datetime = datetime.utcnow()
+
+class FrontendComponent(BaseModel):  # ✅ 🔹 Adicionado esta classe
+    """
+    Modelo para registrar um novo componente do frontend.
+    """
+    name: str
+    description: Optional[str] = None
+    route: str
 
 class FrontendModel(BaseModel):
     """
