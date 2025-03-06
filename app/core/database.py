@@ -19,8 +19,12 @@ MONGO_TIMEOUT_MS = int(os.getenv("MONGO_TIMEOUT_MS", 5000))  # Timeout de 5 segu
 # Configuração do Redis
 REDIS_URI = os.getenv("REDIS_URI")
 
+# Verificação das variáveis de ambiente
 if not MONGO_URI:
     raise ValueError("❌ ERRO: A variável 'MONGO_URI' não está configurada. Configure no Railway.")
+
+if not REDIS_URI:
+    raise ValueError("❌ ERRO: A variável 'REDIS_URI' não está configurada. Configure no Railway.")
 
 class Database:
     def __init__(self):
@@ -39,16 +43,12 @@ class Database:
                     MONGO_URI, serverSelectionTimeoutMS=MONGO_TIMEOUT_MS
                 )
                 self.db = self.client[DATABASE_NAME]
-
-                # Testa conexão com MongoDB
-                if await self.db.command("ping"):
-                    logger.info("✅ Conectado ao MongoDB com sucesso.")
+                await self.db.command("ping")  # Testa conexão
+                logger.info("✅ Conectado ao MongoDB com sucesso.")
 
             if self.redis is None:
                 logger.info("🔹 Conectando ao Redis...")
                 self.redis = redis.Redis.from_url(REDIS_URI, decode_responses=True)
-                
-                # Testa conexão com Redis
                 if await self.redis.ping():
                     logger.info("✅ Conectado ao Redis com sucesso.")
                 else:
@@ -59,7 +59,7 @@ class Database:
 
     async def get_database(self):
         """
-        Retorna a conexão ativa com o banco de dados.
+        Retorna a conexão ativa com o MongoDB.
         """
         if self.client is None:
             logger.warning("⚠️ Nenhuma conexão ativa com MongoDB. Tentando reconectar...")
@@ -70,7 +70,30 @@ class Database:
 
         return self.db
 
+    async def get_redis(self):
+        """
+        Retorna a conexão ativa com o Redis.
+        """
+        if self.redis is None:
+            logger.warning("⚠️ Nenhuma conexão ativa com Redis. Tentando reconectar...")
+            await self.connect()
+
+        if self.redis is None:
+            raise ConnectionError("❌ Erro: Redis não disponível após reconexão!")
+
+        return self.redis
+
+# Instância global do banco de dados
 database = Database()
 
 async def get_database():
+    """
+    Função global para obter a conexão ativa do MongoDB.
+    """
     return await database.get_database()
+
+async def get_redis():
+    """
+    Função global para obter a conexão ativa do Redis.
+    """
+    return await database.get_redis()
