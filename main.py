@@ -45,11 +45,11 @@ async def shutdown_event():
         logger.error(f"❌ Erro ao encerrar conexões: {e}")
 
 # 🔹 Inclui as rotas principais da API
-app.include_router(chat.router, prefix="/chat", tags=["Chat Assistente"])
-app.include_router(modules.router, prefix="/modules", tags=["Módulos Internos"])
-app.include_router(system.router, prefix="/system", tags=["Controle do Sistema"])
-app.include_router(logs.router, prefix="/logs", tags=["Monitoramento"])
-app.include_router(users.router, prefix="/users", tags=["Usuários e Permissões"])
+app.include_router(chat.router, prefix="/api//chat", tags=["Chat Assistente"])
+app.include_router(modules.router, prefix="/api/modules", tags=["Módulos Internos"])
+app.include_router(system.router, prefix="/api/system", tags=["Controle do Sistema"])
+app.include_router(logs.router, prefix="/api/logs", tags=["Monitoramento"])
+app.include_router(users.router, prefix="/api/users", tags=["Usuários e Permissões"])
 app.include_router(frontend_sync.router, prefix="/api/frontend-sync", tags=["Sincronização Frontend"])
 
 # 🔹 Health Check - Verifica status da API e conexões do banco

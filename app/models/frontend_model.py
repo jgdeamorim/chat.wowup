@@ -36,16 +36,12 @@ class FrontendComponent(BaseModel):  # ✅ 🔹 Adicionado esta classe
     route: str
 
 class FrontendModel(BaseModel):
-    """
-    Modelo principal para armazenamento do frontend.
-    """
     menus: List[MenuItem]
     paginas: List[PageModel]
     endpoints: List[dict]
     ultima_atualizacao: datetime = datetime.utcnow()
-
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "menus": [
                     {
