@@ -8,7 +8,7 @@ from app.routes import (
     users,
     frontend_sync
 )
-from config.settings import settings  # Garante que `settings.py` esteja corretamente referenciado
+from config.settings import settings  # Importação garantida
 
 import logging
 from datetime import datetime
@@ -19,12 +19,12 @@ logger = logging.getLogger(__name__)
 
 # Inicialização do FastAPI
 app = FastAPI(
-    title=settings.PROJECT_NAME,
-    version=settings.VERSION,
+    title=getattr(settings, "PROJECT_NAME", "Chat Central API"),
+    version=getattr(settings, "VERSION", "1.0.0"),
     description="Chat Central - Assistente Inteligente para Gestão de Projetos e Módulos"
 )
 
-# Conectar ao banco de dados ao iniciar a aplicação
+# 🔹 Evento de startup: Conexão com MongoDB e Redis
 @app.on_event("startup")
 async def startup_event():
     try:
@@ -34,45 +34,59 @@ async def startup_event():
     except Exception as e:
         logger.error(f"❌ Erro ao conectar ao banco de dados: {e}")
 
-# Garante o encerramento correto das conexões ao desligar o sistema
+# 🔹 Evento de shutdown: Fecha conexões com MongoDB e Redis corretamente
 @app.on_event("shutdown")
 async def shutdown_event():
-    logger.warning("⚠️ Encerrando conexões do banco de dados...")
-    await database.client.close()
+    try:
+        logger.warning("⚠️ Encerrando conexões do banco de dados...")
+        await database.disconnect()
+        logger.info("🔌 Conexões encerradas com sucesso.")
+    except Exception as e:
+        logger.error(f"❌ Erro ao encerrar conexões: {e}")
 
-# Inclui as rotas principais da API
+# 🔹 Inclui as rotas principais da API
 app.include_router(chat.router, prefix="/chat", tags=["Chat Assistente"])
 app.include_router(modules.router, prefix="/modules", tags=["Módulos Internos"])
 app.include_router(system.router, prefix="/system", tags=["Controle do Sistema"])
 app.include_router(logs.router, prefix="/logs", tags=["Monitoramento"])
 app.include_router(users.router, prefix="/users", tags=["Usuários e Permissões"])
-app.include_router(frontend_sync.router, prefix="/frontend", tags=["Sincronização Frontend"])
+app.include_router(frontend_sync.router, prefix="/api/frontend-sync", tags=["Sincronização Frontend"])
 
-# Endpoint de status do sistema
+# 🔹 Health Check - Verifica status da API e conexões do banco
 @app.get("/")
 async def health_check():
     """
-    Verifica o status do sistema, incluindo o banco de dados.
+    Verifica o status do sistema e a conexão com o banco de dados.
     """
     health_data = {
         "status": "Online",
-        "version": settings.VERSION,
-        "timestamp": datetime.utcnow().isoformat()
+        "version": getattr(settings, "VERSION", "1.0.0"),
+        "timestamp": datetime.utcnow().isoformat(),
+        "database": "⏳ Verificando...",
+        "redis": "⏳ Verificando..."
     }
 
-    # Testa conexão com o banco de dados sem reinicializar `init_db()`
     try:
         if database.client:
+            await database.db.command("ping")  # Testa conexão MongoDB
             health_data["database"] = "✅ Conectado"
         else:
             health_data["database"] = "❌ Erro na conexão"
     except Exception:
         health_data["database"] = "❌ Erro na conexão"
 
+    try:
+        redis_conn = await database.get_redis()
+        if await redis_conn.ping():
+            health_data["redis"] = "✅ Conectado"
+        else:
+            health_data["redis"] = "❌ Erro na conexão"
+    except Exception:
+        health_data["redis"] = "❌ Erro na conexão"
+
     return health_data
 
-# Ponto de entrada para rodar o servidor Uvicorn
+# 🔹 Inicia o servidor Uvicorn quando executado diretamente
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000)
-
+    uvicorn.run(app, host="0.0.0.0", port=8000)
