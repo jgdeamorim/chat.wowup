@@ -1,7 +1,7 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 from app.core.security import create_access_token, verify_password, get_password_hash
 from app.core.database import get_database
-from app.models.user_model import User
+from app.models.user_model import UserCreate, UserDB
 from datetime import datetime
 import logging
 
@@ -12,13 +12,13 @@ logger.setLevel(logging.INFO)
 router = APIRouter()
 
 @router.post("/register", summary="Registra um novo usuário")
-async def register_user(user: User):
+async def register_user(user: UserCreate):
     """
     Registra um novo usuário no sistema.
     """
     db = await get_database()
     
-    if not db:
+    if db is None:
         logger.error("❌ Erro ao conectar ao banco de dados.")
         raise HTTPException(status_code=500, detail="Erro ao conectar ao banco de dados.")
 
@@ -34,11 +34,14 @@ async def register_user(user: User):
 
     hashed_password = get_password_hash(user.password)
 
-    user_data = user.dict(exclude_unset=True)
-    user_data.pop("id", None)  # Remove ID caso esteja presente
-    user_data["password"] = hashed_password
-    user_data["created_at"] = datetime.utcnow()
-    user_data["updated_at"] = datetime.utcnow()
+    user_data = UserDB(
+        username=user.username,
+        email=user.email,
+        role=user.role,
+        hashed_password=hashed_password,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
+    ).dict()
 
     await db["users"].insert_one(user_data)
     logger.info(f"✅ Novo usuário registrado: {user.email}")
@@ -51,12 +54,12 @@ async def login_user(email: str, password: str):
     """
     db = await get_database()
     
-    if not db:
+    if db is None:
         logger.error("❌ Erro ao conectar ao banco de dados.")
         raise HTTPException(status_code=500, detail="Erro ao conectar ao banco de dados.")
 
     user = await db["users"].find_one({"email": email})
-    if not user or not verify_password(password, user["password"]):
+    if not user or not verify_password(password, user["hashed_password"]):
         logger.warning(f"⚠️ Tentativa de login falha para {email}")
         raise HTTPException(status_code=401, detail="Credenciais inválidas.")
 
@@ -72,14 +75,14 @@ async def list_users():
     try:
         db = await get_database()
 
-        if not db:
+        if db is None:
             raise HTTPException(status_code=500, detail="Erro ao conectar ao banco de dados.")
 
         if "users" not in await db.list_collection_names():
             logger.warning("⚠️ Nenhum usuário cadastrado ainda.")
             return {"users": []}
 
-        users = await db["users"].find({}, {"_id": 0, "password": 0}).to_list(None)
+        users = await db["users"].find({}, {"_id": 0, "hashed_password": 0}).to_list(None)
         return {"users": users}
 
     except Exception as e:

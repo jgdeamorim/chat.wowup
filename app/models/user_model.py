@@ -2,14 +2,25 @@ from pydantic import BaseModel, EmailStr
 from datetime import datetime
 from typing import Optional
 
-class User(BaseModel):
+class UserBase(BaseModel):
     """
-    Modelo de dados para usuários.
+    Base para o modelo de usuários.
     """
-    id: Optional[str] = None
     username: str
     email: EmailStr
-    password: str  # 🔹 Agora está correto para receber a senha antes do hash
-    role: str  # admin, user, viewer
+    role: str  # Pode ser "admin", "user", "viewer"
+
+class UserCreate(UserBase):
+    """
+    Modelo de criação de usuários.
+    """
+    password: str  # Necessário apenas para registro
+
+class UserDB(UserBase):
+    """
+    Modelo armazenado no banco de dados.
+    """
+    id: Optional[str]
+    hashed_password: str
     created_at: datetime = datetime.utcnow()
-    updated_at: Optional[datetime] = None
+    updated_at: Optional[datetime]
