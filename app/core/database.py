@@ -43,8 +43,8 @@ class Database:
                 self.db = self.client[DATABASE_NAME]
 
                 # Testa conexão com MongoDB
-                await self.db.command("ping")
-                logger.info("✅ Conectado ao MongoDB com sucesso.")
+                if await self.db.command("ping"):
+                    logger.info("✅ Conectado ao MongoDB com sucesso.")
 
             if not self.redis:
                 logger.info("🔹 Conectando ao Redis...")
@@ -65,7 +65,7 @@ class Database:
         """
         try:
             if self.client:
-                self.client.close()
+                self.client.close()  # ❗️ Corrigido: `close()` não é assíncrono
                 logger.info("🔌 Conexão com MongoDB fechada.")
 
             if self.redis:
@@ -82,8 +82,8 @@ class Database:
         try:
             if self.db:
                 try:
-                    await self.db.command("ping")
-                    logger.info("✅ MongoDB está online.")
+                    if await self.db.command("ping"):
+                        logger.info("✅ MongoDB está online.")
                 except Exception:
                     logger.warning("⚠️ Conexão com MongoDB perdida. Tentando reconectar...")
                     await self.connect()
@@ -103,8 +103,13 @@ class Database:
         """
         Retorna a conexão ativa com o banco de dados.
         """
-        if not self.db:
+        if not self.client or not self.db:
+            logger.warning("⚠️ Nenhuma conexão ativa com MongoDB. Tentando reconectar...")
             await self.connect()
+
+        if not self.db:
+            raise ConnectionError("❌ Erro: Banco de dados não disponível após reconexão!")
+
         return self.db
 
     async def get_redis(self):
@@ -119,7 +124,13 @@ class Database:
 database = Database()
 
 async def get_database():
+    """
+    Função global para obter o banco de dados.
+    """
     return await database.get_database()
 
 async def get_redis():
+    """
+    Função global para obter o Redis.
+    """
     return await database.get_redis()
